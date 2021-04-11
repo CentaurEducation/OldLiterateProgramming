@@ -1,0 +1,244 @@
+@
+*{Outline}*
+  We will proceed as follows. First, we will write a program to test if a given test -{vector}- can be produced by a seed vector combination, according to the function given. Then, we shall write a program that checks the compatibility of test -{cubes}- with test -{vectors}-. Finally, we may write a program that reads a sequence of test cubes and checks if it matches with one or more test vectors.
+
+I.*{Testing if a given test -{vector}- can be produced from some -{a}-, -{b}-.}*
+The title of this section is somewhat misleading- in addition to checking if a certain test vector can be compressed directly, we will also produce the -{a}- and -{b}- which decompress to the given vector. To understand the general plan of action, we will first take note of some theory.
+The partial products of the multipliers correspond to the given equations: (taken from the code in MATLAB)
+/@
+
+$
+C
+t11= v11;
+t12= v12;
+t13= v13;
+t14= v14;
+t21= xor(v12,v21);
+t22= xor(v12,v23);
+t23= xor(v13,v24);
+t24= v24;
+t31= xor(v12,xor(v23,v31));
+t32= xor(v13,xor(v24,v32));
+t33= xor(v23,v34);
+t34= v34;
+t41= xor(xor(v14,v22),xor(v33,v41));
+t42= xor(v23,xor(v34,v42));
+t43= xor(v34,v43);
+t44= v44;
+/$
+
+@
+where the variables -{v_{ij}-}- are obtained from -{a}-, -{b}- as:
+       -{v_{ij}_}- :_eq_ -{a_{i}_}- _and_ -{b_{j}_}-
+with the indices on -{a}- and -{b}- signifying the -{bit number}- under current consideration. The equivalence of the -{XOR}- operation and -{multiplication modulo 2}- means that all the operations involved in the evaluation of -{t_{ij}_}- from -{a}-,-{b}- can be regarded as operations in a -{finite field}-, more specifically, the field -{F}-_{2}_. This means that we may ignore, for now, the operation by which we obtain -{v_{ij}_}- from -{a}- and -{b}-, and treat the mapping of the matrix [-{v_{ij}_}-] to [-{t_{ij}_}-] as that of a linear operator acting on -{F}-_{2}_^{16}^, in which we replace [-{v_{ij}_}-] and [-{t_{ij}_}-] by the vectors -{V}- and -{T}- respectively, with the definition of their components taken in the -{row-major}- convention:
+       -{t_{ij}_}- = -{T}-_{4-{i}- + -{j}- - 4}_
+and similarly for -{v}- and -{V}-. In order to test, now, whether a given test vector can be compressed directly, we must first analyse the -{form}- of this linear operator.
+Writing it out in matrix form we get:
+
+   1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+   0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+   0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0
+   0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 
+   0 1 0 0 1 0 0 0 0 0 0 0 0 0 0 0 
+   0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 0
+   0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0
+   0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0
+   0 1 0 0 0 0 1 0 1 0 0 0 0 0 0 0
+   0 0 1 0 0 0 0 1 0 1 0 0 0 0 0 0
+   0 0 0 0 0 0 1 0 0 0 0 1 0 0 0 0
+   0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0
+   0 0 0 1 0 1 0 0 0 0 1 0 1 0 0 0
+   0 0 0 0 0 0 1 0 0 0 0 1 0 1 0 0
+   0 0 0 0 0 0 0 0 0 0 0 1 0 0 1 0 
+   0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+
+  We'll call this matrix -{A}-. The rest of the analysis is very simple and apparent immediately:
+1) Check if the given 16-bit data (-{T}-) is in the column space of -{A}-.
+2) Find the -{V}- which corresponds to -{T}-, if the first step allows for it.
+3) Find -{a}- and -{b}- from -{V}- according to the multiplier equations.
+
+To perform 1), we analyse -{A}- a little. While performing computation in -{F}-_{2}_, the operator is non-invertible if it has an -{odd}- determinant. The above matrix has determinant 0. It can be seen that its rank is 14- by simply -{looking}- at each column from the rightmost (i.e. column #16), we find that the linear independence of the columns is broken by the fact that: -{C}-_{6}_ _eq_ -{C}-_{11}_ _eq_ -{C}-_{13}_. That is why, on elimination of these columns, row reduction gives us a very simple formula for the partial inversion of the operation. The formulae we get by reducing the block matrix [ -{A}- | -{T}- ], is as below. 
+
+-{V}-_{1}_ = -{T}-_{1}_
+-{V}-_{2}_ = -{T}-_{2}_
+-{V}-_{3}_ = -{T}-_{3}_
+-{V}-_{4}_ = -{T}-_{4}_
+-{V}-_{5}_ = -{T}-_{5}_ - -{T}-_{2}_
+-{V}-_{6}_ = -{T}-_{6}_ - -{T}-_{2}_
+-{V}-_{7}_ = -{T}-_{7}_ - -{T}-_{3}_
+-{V}-_{8}_ = -{T}-_{9}_ - -{T}-_{6}_
+-{V}-_{9}_ = -{T}-_{10}_ - -{T}-_{7}_
+-{V}-_{10}_ =  -{T}-_{11}_ - -{T}-_{6}_ + -{T}-_{2}_
+-{V}-_{11}_ =  -{T}-_{13}_ - -{T}-_{4}_
+-{V}-_{12}_ =  -{T}-_{14}_ - -{T}-_{11}_
+-{V}-_{13}_ = -{T}-_{15}_ - -{T}-_{11}_ + -{T}-_{6}_ - -{T}-_{2}_
+-{V}-_{14}_ = -{T}-_{16}_
+-{V}-_{15}_ = -{T}-_{8}_ - -{T}-_{7}_ + -{T}-_{3}_
+-{V}-_{16}_ = -{T}-_{12}_ - -{T}-_{11}_ + -{T}-_{6}_ - -{T}-_{2}_
+
+Further, row reduction on the 14-column version of -{A}- gives the last two rows zero, as expected. This means that a given -{T}- -{cannot}- lie in the column space of -{A}- if the last two expressions above (for -{V}-_{15}_ and -{V}-_{16}_) evaluate to zero. This gives us step number one in the operation to get -{V}- from -{T}-:
+/@
+
+$
+C
+[[ 1. Check if the given -{T}- |{isin}| column-space of -{A}-. ]]:-
+if( 
+    ( ( -{T}- [8] - -{T}- [7] + -{T}- [3] ) mod 2 _ne_ 0 ) 
+                    _or_ 
+    ( ( -{T}- [12] - -{T}- [11] + -{T}- [6] - -{T}- [2] ) mod 2 _ne_ 0 )
+  ) 
+{ 
+    -{printf}-( #{"\nCannot be compressed normally- not in column space."}# );
+    goto -{end}-;
+}
+/$
+
+@
+The above equations also allow us to complete step (2) of our analysis easily.
+/@
+
+$
+C
+[[ 2. Find -{V}- from -{T}-. ]]:-
+-{V}- [1] <- ( -{T}- [1] ) mod 2;
+-{V}- [2] <- ( -{T}- [2] ) mod 2;
+-{V}- [3] <- ( -{T}- [3] ) mod 2;
+-{V}- [4] <- ( -{T}- [4] ) mod 2;
+-{V}- [5] <- ( -{T}- [5] - -{T}- [2] ) mod 2;
+-{V}- [6] <- ( -{T}- [6] - -{T}- [2] ) mod 2;
+-{V}- [7] <- ( -{T}- [7] - -{T}- [3] ) mod 2;
+-{V}- [8] <- ( -{T}- [9] - -{T}- [6] ) mod 2;
+-{V}- [9] <- ( -{T}- [10] - -{T}- [7] ) mod 2;
+-{V}- [10] <- ( -{T}- [11] - -{T}- [6] + -{T}- [2] ) mod 2;
+-{V}- [11] <- ( -{T}- [13] - -{T}- [4] ) mod 2;
+-{V}- [12] <- ( -{T}- [14] - -{T}- [11] ) mod 2;
+-{V}- [13] <- ( -{T}- [15] - -{T}- [11] + -{T}- [6] - -{T}- [2] ) mod 2;
+-{V}- [14] <- ( -{T}- [16] ) mod 2;
+-{V}- [15] <- ( -{T}- [8] - -{T}- [7] + -{T}- [3] ) mod 2;
+-{V}- [16] <- ( -{T}- [12] - -{T}- [11] + -{T}- [6] - -{T}- [2] ) mod 2;
+/$
+
+@
+Step (3) is also simple, and hinges on one basic insight. Let us look at the rectangular array representation of -{v_{ij}_}-, and use its definition in therms of -{a}- and -{b}-.
+
+   -{a}-_{1}_-{b}-_{1}_ -{a}-_{1}_-{b}-_{2}_ -{a}-_{1}_-{b}-_{3}_ -{a}-_{1}_-{b}-_{4}_
+   -{a}-_{2}_-{b}-_{1}_ -{a}-_{2}_-{b}-_{2}_ -{a}-_{2}_-{b}-_{3}_ -{a}-_{2}_-{b}-_{4}_
+   -{a}-_{3}_-{b}-_{1}_ -{a}-_{3}_-{b}-_{2}_ -{a}-_{3}_-{b}-_{3}_ -{a}-_{3}_-{b}-_{4}_
+   -{a}-_{4}_-{b}-_{1}_ -{a}-_{4}_-{b}-_{2}_ -{a}-_{4}_-{b}-_{3}_ -{a}-_{4}_-{b}-_{4}_
+
+It is clear that if any entry is zero, one of three cases holds:
+1) Every other entry in its row is zero
+2) Every other entry in its column is zero
+3) Both 1) and 2) holds
+That is because of the repitition of one of the (bit-) multiplicands along each row and column. Given the interpretation of -{V}- as being the row-major reading of -{v}-, we can implement this easily. We simply have to search for a zero, in -{V}-, then check if every entry along either its row or column is also zero. If not, the given vector -{cannot}- be compressed. If it can, then identifying that row, or column will immediately identify a bit as being zero. If all the -{a_{i}_}-'s and -{b_{i}_}-'s were intitialised to '1', repeating this will identify -{all}- the bits of the multiplicand.
+Here, we shall:
+1) Get -{v}- from -{V}-.
+2) Search for a zero in the result.
+3) Check if the entire row vanishes.
+4) Check if the entire column vanishes.
+5) Error handling- if -{neither}- row nor column vanishes.
+/@
+
+$
+C
+[[ 3. Find -{a}-, -{b}- from -{V}-. ]]:-
+for( -{i}- <- 1; -{i}- _le_ 16; -{i}- <- -{i}- + 1 )
+{
+    -{I}- <- (int)-{i}-/4 + 1;
+    -{J}- <- ( -{i}- mod 4 ) + 1;
+    -{v}- [ -{I}- ][ -{J}- ] <- -{V}- [ -{i}- ];
+}
+
+for( -{I}- <- 1; -{I}- _le_ 4; -{I}- <- -{I}- + 1 )
+{
+    for( -{J}- <- 1; -{J}- _le_ 4; -{J}- <- -{J}- + 1 )
+    {
+
+        if( -{v}- [ -{I}- ][ -{J}- ] _eq_ 0 )
+        {
+
+            for( -{k}- <- 1; -{k}- _le_ 4; -{k}- <- -{k}- + 1 ) 
+                -{row_sum}- <- -{row_sum}- + -{v}- [ -{I}- ][ -{k}- ];
+            if( -{row_sum}- _eq_ 0 ) -{a}- [ -{I}- ] <- 0;
+
+            for( -{k}- <- 1; -{k}- _le_ 4; -{k}- <- -{k}- + 1 ) 
+                -{column_sum}- <- -{column_sum}- + -{v}- [ -{k}- ][ -{J}- ];
+            if( -{column_sum}- _eq_ 0 ) -{b}- [ -{J}- ] <- 0;
+
+            if( ( -{row_sum}- _ne_ 0 ) _and_ ( -{column_sum}- _ne_ 0 ) )
+            { 
+                -{printf}-( #{"\nImage not compatible with an \"a\", \"b\"."}# );
+                goto -{end}-;
+            }
+        }
+
+    }
+}
+
+for( -{k}- <- 1; -{k}- _le_ 4; -{k}- <- -{k}- + 1 )
+    -{printf}-( #{"\na%d= %d, b%d= %d"}#, -{k}-, -{a}- [-{k}-], -{k}-, -{b}- [-{k}-] );
+/$
+
+@
+Finally, there is a lot of work in the initialisation. Immediately, we note that we must:
+1) The -{seed vectors}- (i.e. -{a}-, -{b}-) must be initialised to 1111,1111.
+2) Resolve the symbol "mod" according to the language ("%" in C.)
+3) Read -{T}- from the command line arguments.
+/@
+
+$
+C
+[[ Initialise. ]]:-
+int -{I}- <- 1, -{J}- <- 1, -{i}- <- 1, -{k}- <- 1;
+int -{row_sum}- <- 0, -{column_sum}- <- 0;
+int -{V}- [16], -{T}- [16], -{v}- [4][4];
+int -{a}- [5] <- { 1, 1, 1, 1, 1}, -{b}- [5] <- { 1, 1, 1, 1, 1};
+
+for( -{i}- <- 1; -{i}- _le_ 16; -{i}- <- -{i}- + 1 )
+{ -{T}- [ -{i}- ] <- -{argv}- [1][ -{i}- - 1 ] - '0' ; }
+/$
+
+@
+In C, this requires further resolution to head it off,
+/@
+
+$
+C
+[[ Begin. ]]:-
+#include _lt_#{stdio.h}#_gt_
+
+int compress( char *-{argv}- [] )
+{
+/$
+
+@
+and, at the end,
+/@
+
+$
+C
+[[ Finish. ]]:-
+-{end}-:
+
+    return 0;
+}
+/$
+
+@
+That takes care of determining -{a}-, -{b}- from -{T}-. The procedure is, therefore, as:
+/@
+
+$
+TestVector.h
+
+[[ Begin. ]]
+
+[[ Initialise. ]]
+[[ 1. Check if the given -{T}- |{isin}| column-space of -{A}-. ]]
+[[ 2. Find -{V}- from -{T}-. ]]
+[[ 3. Find -{a}-, -{b}- from -{V}-. ]]
+[[ Finish. ]]
+
+/$
+
+endw

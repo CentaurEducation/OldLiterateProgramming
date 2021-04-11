@@ -1,0 +1,84 @@
+@
+1. <u>Solve the equation</u>
+Central to this problem, is the solving of the problem:
+<i>a<sub>1</sub></i> + <i>a<sub>2</sub></i> + <i>a<sub>3</sub></i> + ...<i>a<sub>f</sub></i> = <i>N<sub>0</sub></i> ; <i>a<sub>1</sub></i>,...,<i>a<sub>f</sub></i> &gt; 1
+where <i>f</i> is the number of fragments under consideration, and <i>N<sub>0</sub></i> is the size of the bitstring that is being framented (in our application, it is 16.) The solutions to this are generated via Richard Bellman's notion of <i>dynamic programming</i>. 
+We may understand this approach very simply by solving it for <u>four</u> fragments: <i>f</i>= 4. 
+We first note that the solutions to:
+<i>a</i> + <i>b</i> = <i>n</i> ; <i>a</i>, <i>b</i> &gt; 1
+are: <i>a</i>= 1, 2, ..., <i>n</i> &minus; 1, and <i>b</i>= <i>n</i> &minus; <i>a</i>. Thus we can split the problem of finding the solutions to: 
+<i>a</i> + <i>b</i> + <i>c</i> + <i>d</i> =<i>N</i>
+by finding the solutions to the sub-problems. We thus divide the problem and solve it in <i>levels</i>:
+(<i>a</i> + (<i>b</i> + (<i>c</i> + <i>d</i>))) =<i>N</i>
+This is similar to the drawing of a <i>tree</i>. This translates to a </font><font face="Courier New"><b>for</b></font><font face="CMU Serif"> loop, which generates all the solutions:
+/@
+$
+C.txt
+/*Generate_all_solutions_in_levels.*/
+for( a= 1; a<=N-3; a++ )
+{ 
+/*b+c+d= N-a.*/
+for( b= 1; b<=N-a-2; b++ )
+{
+/*c+d= N-a-b.*/
+for( c= 1; c<=N-a-b-1; c++ )
+{
+
+printf( "\n(%d,%d,%d,%d)", a, b, c, N-a-b-c );
+
+}}}
+/$
+@
+This solution method is also used to compute the <i>number of solutions</i> to the equation, with pen and paper, and this is actually closely related to the <i>linear programming</i> example which Richard Bellman himself used to present his method in the original papers. It can be used to compute the <i>number of solutions</i> to this by hand. 
+Also, taking the idea from E.W. Dijkstra, who used the ALGOL notation to solve mathematical problems in some papers in his <i>Collected Writings</i>, we can write down the function to find the number of solutions. Let a variable </font><font face="Courier New">count</font><font face="CMU Serif"> hold the number of solutions to <i>a</i>, <i>b</i>, <i>c</i> and <i>d</i>. We can find it by performing the computation:
+/@
+$
+C.txt
+/*Find_the_number_of_solutions.*/
+for( a= 1; a<=N-3; a++ )
+{ 
+/*b+c+d= N-a.*/
+for( b= 1; b<=N-a-2; b++ )
+{
+/*c+d= N-a-b.*/
+for( c= 1; c<=N-a-b-1; c++ )
+{
+
+count++;
+
+}}}
+/$
+@
+Now we can trace the value of </font><font face="Courier New">count</font><font face="CMU Serif"> throught the </font><font face="Courier New">for</font><font face="CMU Serif"> loop, and we get the expression:
+&sum;<sub>1&le;<i>a</i>&le;<i>N-</i>3</sub> &sum;<sub>1&le;<i>b</i>&le;<i>N-a-</i>2</sub> &sum;<sub>1&le;<i>c</i>&le;<i>N-a-b-</i>1</sub>  1
+When we substitute <i>N</i>=16, as in our problem, we get 455, which is reasonable. This is also obtained by running the </font><font face="Courier New"><b>for</b></font><font face="CMU Serif"> loop above in a program:
+/@
+$
+Generate.cpp
+#include<stdio.h>//stdio
+int main()
+{
+
+int N, a, b, c;
+printf( "Enter the size of the bitstring:" );
+scanf( "%d", &N );
+
+%/*Generate_all_solutions_in_levels.*/
+
+int count=0;
+%/*Find_the_number_of_solutions.*/
+printf( "\n\nNumber of solutions: %d", count );
+
+return 0;
+}
+/$
+@
+This should solve the problem for <i>f</i>=4. Next we may tackle the larger problem.
+
+2.<u>The larger problem</u>
+The actual problem is to find the <i>best possible</i> fragmentation scheme. This means that the value of <i>f</i> must be varied until we find the best scheme. This, however, is not so difficult, or time-inefficient, since we may use the method of an <i>updating threshold</i>, a common technique in <i>searching</i> and in various problems in electrical engineering. This should save time by a large amount, and, at the same time, use some of the best methods of the early days of artificial intelligence, without any difficulties.
+...To be completed.
+
+/@
+
+endw

@@ -1,0 +1,16 @@
+IDEAL
+
+Ideally our users would be able sign into their laptops and then automatically have access to all of the applications they need to use.
+
+REALITY
+
+In reality we use at least three applications every day to accomplish our work. Each application is protected by a password with different requirements for username & password length. Passwords also expire at different times.
+
+CONSEQUENCES
+
+Users waste approximately 2 minutes per day logging into multiple applications (500 users * 2 minutes per day = 1000 minutes in lost productivity; 1000 minutes = 16.67 hrs per day * $75/hr = $1250 per day).
+Helpdesk resolves approximately 6000 calls per year to reset forgotten passwords & unlock accounts.
+Security risk as users will continue to write usernames & passwords on sticky notes at their desks.
+PROPOSAL
+
+Have S/W Dev, Network Administration and business stakeholders collaborate to evaluate potential solutions for a Single Sign On capability.
